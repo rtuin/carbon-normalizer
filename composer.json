@@ -4,7 +4,7 @@
     "type": "library",
     "keywords": ["symfony", "serializer", "normalizer", "carbon"],
     "require": {
-        "nesbot/carbon": "^2.54",
+        "nesbot/carbon": "^2.0",
         "symfony/serializer": "^5.3"
     },
     "require-dev": {
