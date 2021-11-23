@@ -2,7 +2,7 @@
     "name": "rtuin/carbon-normalizer",
     "description": "Normalizes to (and from) Carbon and native DateTime objects",
     "type": "library",
-    "keywords": ["symfony", "serializer", "carbon"],
+    "keywords": ["symfony", "serializer", "normalizer", "carbon"],
     "require": {
         "nesbot/carbon": "^2.54",
         "symfony/serializer": "^5.3"
