@@ -2,7 +2,7 @@ Carbon+DateTime Normalizer
 =================
 
 This is a Normalizer for the Symfony Serializer package that supports normalizing
-to and from `Carbon`, `CarbonImmutable`, `Illuminate\Support\Carbon`, `DateTime` and 
+to and from `Carbon`, `CarbonImmutable`, `Illuminate\Support\Carbon`, `DateTime` and
 `DateTimeImmutable`.
 
 Usage example
@@ -21,4 +21,4 @@ $result = $normalizer->denormalize('2019-05-28T07:25:00+02:00', CarbonImmutable:
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
