@@ -4,6 +4,8 @@ namespace Rtuin\Normalizer;
 
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use DateTimeInterface;
+use Symfony\Component\PropertyInfo\Type;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
@@ -20,11 +22,11 @@ class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInter
     public const TIMEZONE_KEY = 'datetime_timezone';
 
     private array $defaultContext = [
-        self::FORMAT_KEY => \DateTime::RFC3339,
+        self::FORMAT_KEY => DateTimeInterface::RFC3339,
         self::TIMEZONE_KEY => null,
     ];
 
-    private const SUPPORTED_DENORMALIZATION_TYPES = [
+    private const SUPPORTED_TYPES = [
         \DateTimeInterface::class => true,
         \DateTimeImmutable::class => true,
         \DateTime::class => true,
@@ -35,20 +37,24 @@ class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInter
 
     public function __construct(array $defaultContext = [])
     {
+        $this->setDefaultContext($defaultContext);
+    }
+
+    public function setDefaultContext(array $defaultContext): void
+    {
         $this->defaultContext = array_merge($this->defaultContext, $defaultContext);
     }
 
-    public function hasCacheableSupportsMethod(): bool
-    {
-        return __CLASS__ === static::class;
-    }
-
-    public function normalize($object, string $format = null, array $context = [])
+    /**
+     * @throws InvalidArgumentException
+     */
+    public function normalize(mixed $object, string $format = null, array $context = []): string
     {
         if (!$object instanceof \DateTimeInterface) {
             throw new InvalidArgumentException('The object must implement the "\DateTimeInterface".');
         }
 
+        $dateTimeFormat = $context[self::FORMAT_KEY] ?? $this->defaultContext[self::FORMAT_KEY];
         $timezone = $this->getTimezone($context);
 
         if (null !== $timezone) {
@@ -56,39 +62,63 @@ class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInter
             $object = $object->setTimezone($timezone);
         }
 
-        return $object->format($context[self::FORMAT_KEY] ?? $this->defaultContext[self::FORMAT_KEY]);
+        return $object->format($dateTimeFormat);
     }
 
-    public function supportsNormalization($data, string $format = null)
+    /**
+     * @param array $context
+     */
+    public function supportsNormalization(mixed $data, string $format = null /* , array $context = [] */): bool
     {
         return $data instanceof \DateTimeInterface;
     }
 
-    public function denormalize($data, string $type, string $format = null, array $context = [])
+    /**
+     * @throws NotNormalizableValueException
+     */
+    public function denormalize(mixed $data, string $type, string $format = null, array $context = []): \DateTimeInterface
     {
-        if ($data === null || $data === '') {
-            throw new NotNormalizableValueException('The data is either an empty string or null, you should pass a string that can be parsed with the passed format or a valid DateTime string.');
-        }
-
-        $dateFormat = $context[self::FORMAT_KEY] ?? $this->defaultContext[self::FORMAT_KEY];
+        $dateTimeFormat = $context[self::FORMAT_KEY] ?? $this->defaultContext[self::FORMAT_KEY];
         $timezone = $this->getTimezone($context);
 
-        if ($type === CarbonImmutable::class) {
-            return CarbonImmutable::createFromFormat($dateFormat, $data, $timezone);
-        } elseif ($type === Carbon::class || $type === '\Illuminate\Support\Carbon') {
-            return Carbon::createFromFormat($dateFormat, $data, $timezone);
-        } elseif ($type === \DateTime::class) {
-            return \DateTime::createFromFormat($dateFormat, $data, $timezone);
-        } elseif ($type === \DateTimeImmutable::class) {
-            return \DateTimeImmutable::createFromFormat($dateFormat, $data, $timezone);
+        if (null === $data || (\is_string($data) && '' === trim($data))) {
+            throw NotNormalizableValueException::createForUnexpectedDataType('The data is either an empty string or null, you should pass a string that can be parsed with the passed format or a valid DateTime string.', $data, [Type::BUILTIN_TYPE_STRING], $context['deserialization_path'] ?? null, true);
+        }
+
+        try {
+            if ($type === CarbonImmutable::class) {
+                return CarbonImmutable::createFromFormat($dateTimeFormat, $data, $timezone);
+            }
+
+            if ($type === Carbon::class || $type === '\Illuminate\Support\Carbon') {
+                return Carbon::createFromFormat($dateTimeFormat, $data, $timezone);
+            }
+
+            if ($type === \DateTime::class) {
+                return \DateTime::createFromFormat($dateTimeFormat, $data, $timezone);
+            }
+
+            if ($type === \DateTimeImmutable::class) {
+                return \DateTimeImmutable::createFromFormat($dateTimeFormat, $data, $timezone);
+            }
+        } catch (\Exception $e) {
+            throw NotNormalizableValueException::createForUnexpectedDataType($e->getMessage(), $data, [Type::BUILTIN_TYPE_STRING], $context['deserialization_path'] ?? null, false, $e->getCode(), $e);
         }
 
         throw new NotNormalizableValueException('The type is not recognized or supported.');
     }
 
-    public function supportsDenormalization($data, string $type, string $format = null): bool
+    /**
+     * @param array $context
+     */
+    public function supportsDenormalization(mixed $data, string $type, string $format = null /* , array $context = [] */): bool
     {
-        return static::SUPPORTED_DENORMALIZATION_TYPES[$type] ?? false;
+        return isset(self::SUPPORTED_TYPES[$type]);
+    }
+
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return __CLASS__ === static::class;
     }
 
     private function getTimezone(array $context): ?\DateTimeZone
