@@ -116,11 +116,6 @@ class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInter
         return isset(self::SUPPORTED_TYPES[$type]);
     }
 
-    public function hasCacheableSupportsMethod(): bool
-    {
-        return __CLASS__ === static::class;
-    }
-
     private function getTimezone(array $context): ?\DateTimeZone
     {
         $dateTimeZone = $context[self::TIMEZONE_KEY] ?? $this->defaultContext[self::TIMEZONE_KEY];
