@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
  * Roughly based on \Symfony\Component\Serializer\Normalizer\DateTimeNormalizer
  * But with Carbon/CarbonImmutable support.
  */
-class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInterface, CacheableSupportsMethodInterface
+class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInterface
 {
     public const FORMAT_KEY = 'datetime_format';
     public const TIMEZONE_KEY = 'datetime_timezone';
@@ -116,11 +116,6 @@ class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInter
         return isset(self::SUPPORTED_TYPES[$type]);
     }
 
-    public function hasCacheableSupportsMethod(): bool
-    {
-        return __CLASS__ === static::class;
-    }
-
     private function getTimezone(array $context): ?\DateTimeZone
     {
         $dateTimeZone = $context[self::TIMEZONE_KEY] ?? $this->defaultContext[self::TIMEZONE_KEY];
@@ -130,5 +125,10 @@ class CarbonDateTimeNormalizer implements NormalizerInterface, DenormalizerInter
         }
 
         return $dateTimeZone instanceof \DateTimeZone ? $dateTimeZone : new \DateTimeZone($dateTimeZone);
+    }
+
+    public function getSupportedTypes(?string $format): array
+    {
+        return self::SUPPORTED_TYPES;
     }
 }
